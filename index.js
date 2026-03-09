@@ -1,28 +1,30 @@
 import express from "express";
 import cors from "cors";
-import blogRoutes from "./routes/blogRoute.js";
+import dotenv from "dotenv";
+
 import connectDB from "./config/dbConfig.js";
+import blogRoutes from "./routes/blogRoute.js";
+import authorRoutes from "./routes/authorRoute.js";
+import uploadRoutes from "./routes/uploadRoute.js";
 import { errorHandler, notFound } from "./middlewares/errorHandler.js";
-import dotenv from 'dotenv';
 
 dotenv.config();
-
-
-const app = express();
-const PORT = 5000;
 connectDB();
 
+const app = express();
+
+app.use(cors({ origin: "*" }));
+
+// Upload route — mounted BEFORE express.json() so multer can parse multipart
+// Mount at full path to avoid Express 5 Router sub-path stripping issues
+app.use("/api/upload/image", uploadRoutes);
+
 app.use(express.json());
-app.use(cors({
-    origin: "*"
-}));
-
-
 app.use("/api/blogs", blogRoutes);
+app.use("/api/authors", authorRoutes);
+
 app.use(notFound);
 app.use(errorHandler);
 
-
-app.listen(PORT, () => {
-    console.log(`Server is running on port http://localhost:${PORT}`);
-});
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

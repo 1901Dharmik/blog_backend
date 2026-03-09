@@ -6,15 +6,32 @@ const notFound = (req, res, next) => {
   next(error);
 };
 
-// Error Handler
+// Error Handler - hide stack in production
 
 const errorHandler = (error, req, res, next) => {
-  const statuscode = res.statusCode == 200 ? 500 : res.statusCode;
-  res.status(statuscode);
-  res.json({
+  const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
+  res.status(statusCode);
+
+  let message = error?.message || "Internal Server Error";
+  let validation = null;
+  try {
+    const parsed = JSON.parse(message);
+    if (parsed && parsed.validation) {
+      validation = parsed.validation;
+      message = "Validation failed";
+    }
+  } catch (_) {}
+
+  const payload = {
     status: "fail",
-    message: error?.message,
-    stack: error?.stack,
-  });
-}
+    message,
+    ...(validation && { validation }),
+  };
+  if (process.env.NODE_ENV !== "production" && error?.stack) {
+    payload.stack = error.stack;
+  }
+
+  res.json(payload);
+};
+
 export { errorHandler, notFound };
